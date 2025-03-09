@@ -4,27 +4,30 @@ import json
 from urllib.parse import urlparse
 import time
 
-# Set page configuration
-st.set_page_config(page_title="WordPress CPT Dynamic API Generator", layout="wide")
+# Set advanced page configuration
+st.set_page_config(page_title="Advanced WordPress CPT API & n8n Agent Generator", layout="wide")
 
 # App Title and Description
-st.title("📌 WordPress Custom Post Types API Generator")
+st.title("📌 Advanced WordPress CPT API & n8n Agent Generator")
 st.markdown("""
-This tool dynamically fetches **Custom Post Types (CPTs)** from a WordPress REST API and generates comprehensive API request templates including:
+This interactive tool dynamically fetches **Custom Post Types (CPTs)** from a WordPress REST API and generates comprehensive API request templates including:
 - **Basic Configuration (Authentication & Endpoints)**
-- **GET Request Template with Filters**
-- **POST Request Template**
-- **PUT Request Template (with Dynamic ID)**
+- **GET Request Template with Query Parameters**
+- **POST Request Template for creating new CPT entries (with all available fields)**
+- **PUT Request Template (with Dynamic ID) for updating entries**
+- **DELETE Request Template for removing entries**
 - **JavaScript Code for Handling Paginated Responses**
 - **JavaScript Field Transformation Function**
-- **Agent Code (n8n Format) for automated API interactions**
+- **Advanced Agent Workflow (n8n Format) for automated API interactions**  
+
+The POST request template below is built to handle the creation of new custom post types with every field available. Modify the placeholders as needed to match your specific CPT schema.
 
 ---
 
 ### 🚀 **How to Use:**
-1. **Enter the API URL** (Defaults to *EntreMotivator*).
+1. **Enter the WordPress API URL** (Defaults to *EntreMotivator*).
 2. **Click "Fetch CPTs and Generate Code"**.
-3. **Expand each CPT section to view the generated code snippets.**
+3. **Expand each CPT section to view the generated code snippets and agent workflows.**
 """)
 
 # Input for the WordPress API URL (for CPTs)
@@ -36,12 +39,14 @@ if not api_url.startswith("http"):
     st.error("❌ Invalid URL. Please enter a valid WordPress REST API URL.")
     st.stop()
 
-# Cache the fetched data to avoid redundant API calls
+# Function to fetch CPTs with caching and retry logic
 @st.cache_data(ttl=300)
 def fetch_cpts(url):
-    """Fetch CPTs from the given WordPress REST API URL with retries and extended timeout."""
+    """
+    Fetch CPTs from the given WordPress REST API URL using retries and an extended timeout.
+    """
     retries = 3
-    timeout = 100  # Extended timeout of 100 seconds
+    timeout = 100  # Extended timeout in seconds
     for attempt in range(retries):
         try:
             response = requests.get(url, timeout=timeout)
@@ -70,17 +75,17 @@ if st.button("🚀 Fetch CPTs and Generate Code"):
         if data:
             st.success(f"✅ Successfully fetched {len(data)} CPT(s)!")
             
-            # Extract base URL from the provided API URL
+            # Extract the base URL from the provided API URL
             parsed_url = urlparse(api_url)
             base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
             
             st.markdown("## 📜 Generated Dynamic Code Snippets")
             
-            # Iterate over each CPT to generate dynamic code sections
+            # Loop through each CPT to create dynamic code sections
             for cpt_slug, details in data.items():
                 with st.expander(f"🔹 CPT: {cpt_slug} - {details.get('name', 'N/A')}"):
                     
-                    # Define the endpoint URL for this CPT
+                    # Define the endpoint URL for the current CPT
                     endpoint = f"{base_url}/wp-json/wp/v2/{cpt_slug}"
                     
                     # 1. Basic Configuration (Authentication & Endpoint)
@@ -104,93 +109,214 @@ if st.button("🚀 Fetch CPTs and Generate Code"):
                     st.markdown("### 🔍 GET Request Template:")
                     st.code(json.dumps(get_request, indent=2), language="json")
                     
-                    # 3. POST Request Template
+                    # 3. Extended POST Request Template for Creating a New CPT Entry with All Fields
                     post_request = {
                         "method": "POST",
                         "body": {
                             "title": "{{ $json.title }}",
                             "content": "{{ $json.content }}",
-                            "status": "draft",
-                            "meta": {"custom_field": "{{ $json.customValue }}"}
+                            "excerpt": "{{ $json.excerpt }}",
+                            "status": "{{ $json.status | default('draft') }}",
+                            "slug": "{{ $json.slug }}",
+                            "author": "{{ $json.author }}",
+                            "featured_media": "{{ $json.featured_media }}",
+                            "categories": "{{ $json.categories }}",
+                            "tags": "{{ $json.tags }}",
+                            "date": "{{ $json.date }}",
+                            "date_gmt": "{{ $json.date_gmt }}",
+                            "modified": "{{ $json.modified }}",
+                            "modified_gmt": "{{ $json.modified_gmt }}",
+                            "meta": {
+                                "custom_field1": "{{ $json.custom_field1 }}",
+                                "custom_field2": "{{ $json.custom_field2 }}",
+                                "additional_field": "{{ $json.additional_field }}"
+                            }
                         }
                     }
-                    st.markdown("### 📝 POST Request Template:")
+                    st.markdown("### 📝 POST Request Template (Create New CPT with All Fields):")
                     st.code(json.dumps(post_request, indent=2), language="json")
                     
-                    # 4. PUT Request Template (Dynamic ID insertion)
+                    # 4. PUT Request Template (Dynamic ID) for Updating a CPT Entry
                     put_request = {
                         "method": "PUT",
-                        "url": f"{endpoint}/{{{{ $json.id }}}}"
+                        "url": f"{endpoint}/{{{{ $json.id }}}}",
+                        "body": {
+                            "title": "{{ $json.title }}",
+                            "content": "{{ $json.content }}",
+                            "excerpt": "{{ $json.excerpt }}",
+                            "status": "{{ $json.status }}",
+                            "slug": "{{ $json.slug }}",
+                            "author": "{{ $json.author }}",
+                            "featured_media": "{{ $json.featured_media }}",
+                            "categories": "{{ $json.categories }}",
+                            "tags": "{{ $json.tags }}",
+                            "date": "{{ $json.date }}",
+                            "date_gmt": "{{ $json.date_gmt }}",
+                            "modified": "{{ $json.modified }}",
+                            "modified_gmt": "{{ $json.modified_gmt }}",
+                            "meta": {
+                                "custom_field1": "{{ $json.custom_field1 }}",
+                                "custom_field2": "{{ $json.custom_field2 }}",
+                                "additional_field": "{{ $json.additional_field }}"
+                            }
+                        }
                     }
-                    st.markdown("### 🔄 PUT Request Template:")
+                    st.markdown("### 🔄 PUT Request Template (Update Existing CPT Entry):")
                     st.code(json.dumps(put_request, indent=2), language="json")
                     
-                    # 5. JavaScript Code for Handling Paginated Responses
+                    # 5. DELETE Request Template for Removing a CPT Entry
+                    delete_request = {
+                        "method": "DELETE",
+                        "url": f"{endpoint}/{{{{ $json.id }}}}",
+                        "qs": {
+                            "force": True
+                        }
+                    }
+                    st.markdown("### 🗑️ DELETE Request Template:")
+                    st.code(json.dumps(delete_request, indent=2), language="json")
+                    
+                    # 6. JavaScript Code for Handling Paginated Responses
                     paginated_code = f"""
-// JavaScript: Handle paginated responses
+// JavaScript: Handle paginated responses for CPT '{cpt_slug}'
 const allResults = [];
 let page = 1;
+let totalPages = 1;
 
 do {{
   const response = await $httpRequest({{
     method: 'GET',
-    url: `{endpoint}?page=${{page}}`,
+    url: `{endpoint}?page=${{page}}&per_page=100`,
     returnFullResponse: true
   }});
+  
+  // Determine total number of pages from response headers
+  totalPages = parseInt(response.headers['x-wp-totalpages'] || '1', 10);
   allResults.push(...response.body);
   page++;
-}} while(response.headers['x-wp-totalpages'] >= page);
+}} while(page <= totalPages);
 
 return allResults.map(item => ({{ json: item }}));
 """
                     st.markdown("### 📄 JavaScript: Paginated Responses:")
                     st.code(paginated_code, language="javascript")
                     
-                    # 6. JavaScript Function for Field Transformation
+                    # 7. JavaScript Function for Field Transformation
                     transformation_code = """
-// JavaScript: Field transformation function
+// JavaScript: Transform fields and combine meta values for enhanced processing
 return items.map(item => ({
   json: {
-    processed_data: {
-      ...item.json,
-      combined_field: `${item.json.meta.field1} - ${item.json.meta.field2}`
-    }
+    ...item.json,
+    combined_field: `${item.json.meta.custom_field1} - ${item.json.meta.custom_field2}`
   }
 }));
 """
                     st.markdown("### 🔧 JavaScript: Field Transformation:")
                     st.code(transformation_code, language="javascript")
                     
-                    # 7. Agent Code (n8n Format) for Automated API Interaction
+                    # 8. Advanced Agent Workflow (n8n Format) for Automated API Interaction
                     agent_code = {
                         "nodes": [
                             {
                                 "parameters": {
                                     "url": endpoint,
-                                    "authentication": "predefinedCredentialType",
-                                    "nodeCredentialType": "wordpressApi",
-                                    "options": {}
+                                    "method": "GET",
+                                    "queryParameters": [
+                                        {"name": "per_page", "value": "100"},
+                                        {"name": "page", "value": "1"}
+                                    ]
                                 },
+                                "name": "Fetch CPT Data",
                                 "type": "n8n-nodes-base.httpRequest",
-                                "typeVersion": 4.2,
-                                "position": [140, -20],
-                                "id": "983e0dae-6715-4a9b-ab07-1c938e277eba",
-                                "name": "HTTP Request",
-                                "credentials": {
-                                    "wordpressApi": {
-                                        "id": "MMY1sVzZsnr23t81",
-                                        "name": "Wordpress account"
+                                "typeVersion": 2,
+                                "position": [250, 200]
+                            },
+                            {
+                                "parameters": {
+                                    "functionCode": (
+                                        "// Function to handle pagination and collate all pages\\n"
+                                        "const allData = [];\\n"
+                                        "let currentPage = 1;\\n"
+                                        "let totalPages = parseInt($node['Fetch CPT Data'].json['x-wp-totalpages'] || '1', 10);\\n\\n"
+                                        "while (currentPage <= totalPages) {\\n"
+                                        "  // In a real scenario, you would fetch each page here\\n"
+                                        "  allData.push(...$node['Fetch CPT Data'].json);\\n"
+                                        "  currentPage++;\\n"
+                                        "}\\n\\n"
+                                        "return allData.map(data => ({ json: data }));"
+                                    )
+                                },
+                                "name": "Handle Pagination",
+                                "type": "n8n-nodes-base.function",
+                                "typeVersion": 1,
+                                "position": [500, 200]
+                            },
+                            {
+                                "parameters": {
+                                    "url": f"{endpoint}/{{{{ $json.id }}}}",
+                                    "method": "PUT",
+                                    "body": {
+                                        "title": "{{ $json.title }}",
+                                        "content": "{{ $json.content }}",
+                                        "excerpt": "{{ $json.excerpt }}",
+                                        "status": "{{ $json.status }}",
+                                        "slug": "{{ $json.slug }}",
+                                        "author": "{{ $json.author }}",
+                                        "featured_media": "{{ $json.featured_media }}",
+                                        "categories": "{{ $json.categories }}",
+                                        "tags": "{{ $json.tags }}",
+                                        "date": "{{ $json.date }}",
+                                        "date_gmt": "{{ $json.date_gmt }}",
+                                        "modified": "{{ $json.modified }}",
+                                        "modified_gmt": "{{ $json.modified_gmt }}",
+                                        "meta": {
+                                            "custom_field1": "{{ $json.custom_field1 }}",
+                                            "custom_field2": "{{ $json.custom_field2 }}",
+                                            "additional_field": "{{ $json.additional_field }}"
+                                        }
                                     }
-                                }
+                                },
+                                "name": "Update CPT Entry",
+                                "type": "n8n-nodes-base.httpRequest",
+                                "typeVersion": 2,
+                                "position": [750, 200]
+                            },
+                            {
+                                "parameters": {
+                                    "url": f"{endpoint}/{{{{ $json.id }}}}",
+                                    "method": "DELETE",
+                                    "queryParameters": [
+                                        {"name": "force", "value": "true"}
+                                    ]
+                                },
+                                "name": "Delete CPT Entry",
+                                "type": "n8n-nodes-base.httpRequest",
+                                "typeVersion": 2,
+                                "position": [750, 400]
                             }
                         ],
-                        "connections": {},
-                        "pinData": {}
+                        "connections": {
+                            "Fetch CPT Data": {
+                                "main": [
+                                    [
+                                        {"node": "Handle Pagination", "type": "main", "index": 0}
+                                    ]
+                                ]
+                            },
+                            "Handle Pagination": {
+                                "main": [
+                                    [
+                                        {"node": "Update CPT Entry", "type": "main", "index": 0},
+                                        {"node": "Delete CPT Entry", "type": "main", "index": 0}
+                                    ]
+                                ]
+                            }
+                        }
                     }
-                    st.markdown("### 🤖 Agent Code (n8n Format):")
+                    st.markdown("### 🤖 Advanced Agent Workflow (n8n Format):")
                     st.code(json.dumps(agent_code, indent=2), language="json")
                     
                     st.markdown("---")
         else:
             st.warning("⚠️ No Custom Post Types found at the provided endpoint.")
+
 
