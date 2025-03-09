@@ -18,9 +18,10 @@ This interactive tool dynamically fetches **Custom Post Types (CPTs)** from a Wo
 - **DELETE Request Template for removing entries**
 - **JavaScript Code for Handling Paginated Responses**
 - **JavaScript Field Transformation Function**
+- **JavaScript Code to Extract and List All Custom Fields (Meta)**
 - **Advanced Agent Workflow (n8n Format) for automated API interactions**  
 
-The POST request template below is built to handle the creation of new custom post types with every field available. Modify the placeholders as needed to match your specific CPT schema.
+The POST and PUT request templates below include placeholders for every commonly used field. Additionally, the JavaScript snippet demonstrates how to extract all custom (meta) fields from each CPT entry, ensuring you can dynamically pull and work with all custom data available.
 
 ---
 
@@ -213,7 +214,23 @@ return items.map(item => ({
                     st.markdown("### 🔧 JavaScript: Field Transformation:")
                     st.code(transformation_code, language="javascript")
                     
-                    # 8. Advanced Agent Workflow (n8n Format) for Automated API Interaction
+                    # 8. JavaScript Code to Extract and List All Custom Fields
+                    custom_fields_code = """
+// JavaScript: Extract and list all custom fields (meta data) for each CPT entry
+return items.map(item => {
+  const meta = item.json.meta || {};
+  // Build a simple object containing all custom field key-value pairs
+  const customFields = Object.keys(meta).reduce((acc, key) => {
+    acc[key] = meta[key];
+    return acc;
+  }, {});
+  return { json: { ...item.json, customFields } };
+});
+"""
+                    st.markdown("### 🔍 JavaScript: Extract All Custom Fields:")
+                    st.code(custom_fields_code, language="javascript")
+                    
+                    # 9. Advanced Agent Workflow (n8n Format) for Automated API Interaction
                     agent_code = {
                         "nodes": [
                             {
@@ -318,5 +335,3 @@ return items.map(item => ({
                     st.markdown("---")
         else:
             st.warning("⚠️ No Custom Post Types found at the provided endpoint.")
-
-
