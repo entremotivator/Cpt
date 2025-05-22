@@ -73,7 +73,11 @@ if st.button("🚀 Fetch CPTs and Generate Code"):
     with st.spinner("🔄 Fetching Custom Post Types..."):
         data = fetch_cpts(api_url)
 
-        if data:
+        # Defensive: Check if data is a dict
+        if not isinstance(data, dict):
+            st.error("❌ The API did not return the expected data structure. Please check the API endpoint.")
+            st.write("Raw API response:", data)
+        else:
             st.success(f"✅ Successfully fetched {len(data)} CPT(s)!")
             
             # Extract the base URL from the provided API URL
@@ -84,6 +88,11 @@ if st.button("🚀 Fetch CPTs and Generate Code"):
             
             # Loop through each CPT to create dynamic code sections
             for cpt_slug, details in data.items():
+                # Defensive: Ensure details is a dict
+                if not isinstance(details, dict):
+                    st.warning(f"⚠️ Unexpected CPT details for '{cpt_slug}': {details}")
+                    continue
+
                 with st.expander(f"🔹 CPT: {cpt_slug} - {details.get('name', 'N/A')}"):
                     
                     # Define the endpoint URL for the current CPT
